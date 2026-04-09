@@ -10,7 +10,7 @@ import remarkMdx from 'remark-mdx'
 import { CONTINUE, SKIP, visit } from 'unist-util-visit'
 import type { VFile } from 'vfile'
 
-import { isAbsoluteLink, stripLeadingSlash, stripTrailingSlash } from './path'
+import { getExtension, isAbsoluteLink, stripLeadingSlash, stripTrailingSlash } from './path'
 import { getFrontmatterNodeValue, parseFrontmatter } from './starlight'
 import type { Version, VersionAsset } from './versions'
 
@@ -20,9 +20,11 @@ const astroAssetRegex = /\.(png|jpg|jpeg|tiff|webp|gif|svg|avif|.+\?raw)$/i
 const mediaElements = new Set(['img', 'source', 'Image', 'audio', 'video'])
 
 const processor = remark().use(remarkDirective).use(remarkMdx).use(remarkFrontmatter).use(remarkStarlightVersions)
+const markdocProcessor = remark().use(remarkDirective).use(remarkFrontmatter).use(remarkStarlightVersions)
 
 export async function transformMarkdown(markdown: string, context: TransformContext) {
-  const file = await processor.process({
+  const activeProcessor = getExtension(context.url.pathname) === '.mdoc' ? markdocProcessor : processor
+  const file = await activeProcessor.process({
     data: { ...context },
     value: markdown,
   })
