@@ -23,16 +23,38 @@ const processor = remark().use(remarkDirective).use(remarkMdx).use(remarkFrontma
 const markdocProcessor = remark().use(remarkDirective).use(remarkFrontmatter).use(remarkStarlightVersions)
 
 export async function transformMarkdown(markdown: string, context: TransformContext) {
-  const activeProcessor = getExtension(context.url.pathname) === '.mdoc' ? markdocProcessor : processor
+  const ext = getExtension(context.url.pathname)
+  const activeProcessor = ext === '.mdoc' ? markdocProcessor : processor
   const file = await activeProcessor.process({
     data: { ...context },
     value: markdown,
   })
 
+  const content = String(file)
+
   return {
     assets: file.data.assets,
-    content: String(file),
+    content: ext === '.mdoc' ? fixMarkdocTagIndentation(content) : content,
   }
+}
+
+// Remark treats Markdoc block tags ({% %}) with no blank line before them as list
+// item continuations, indenting them on serialization. Strip that leading whitespace,
+// but leave fenced code block contents untouched.
+function fixMarkdocTagIndentation(content: string): string {
+  const lines = content.split('\n')
+  let inCodeBlock = false
+
+  return lines
+    .map((line) => {
+      if (/^[ \t]*(`{3,}|~{3,})/.test(line)) {
+        inCodeBlock = !inCodeBlock
+        return line
+      }
+      if (inCodeBlock) return line
+      return line.replace(/^[ \t]+(\{%)/, '$1')
+    })
+    .join('\n')
 }
 
 export function remarkStarlightVersions() {
