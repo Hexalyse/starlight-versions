@@ -41,7 +41,7 @@ export function getExtension(filePath: string) {
 export function stripExtension(filePath: string) {
   const parsedPath = path.parse(filePath)
 
-  return path.posix.join(parsedPath.dir.replace(/\\/g, '/'), parsedPath.name)
+  return path.posix.join(parsedPath.dir, parsedPath.name)
 }
 
 export function isAbsoluteLink(link: string) {
